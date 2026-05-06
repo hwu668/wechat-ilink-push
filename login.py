@@ -4,36 +4,51 @@
 用法:
     python login.py
 
-首次使用需要手机微信扫描终端显示的二维码链接。
-登录成功后凭证持久化，后续 push.py 无需重复登录。
+首次使用需要手机微信扫描二维码图片。
+二维码链接会自动在浏览器中打开（如无法自动打开，请手动复制终端打印的链接）。
 """
 
 from __future__ import annotations
 
 import asyncio
 import sys
-
-# 允许从项目根目录或任意位置运行
+import webbrowser
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ilink.auth import login_with_qr
-from ilink.storage import save_credentials, clear_credentials
+from ilink.storage import save_credentials
 
 
 async def main() -> None:
-    print("=" * 60)
-    print("  微信 iLink Bot 扫码登录")
-    print("=" * 60)
+    print()
+    print("╔" + "═" * 58 + "╗")
+    print("║" + "  微信 iLink Bot 扫码登录".center(52) + "║")
+    print("╚" + "═" * 58 + "╝")
     print()
 
+    qr_url_shown = False
+
     def on_qr(url: str) -> None:
-        print("📱 请在浏览器中打开以下链接，用微信扫描二维码：")
+        nonlocal qr_url_shown
+        # 尝试自动打开浏览器
+        try:
+            webbrowser.open(url)
+            print("🌐 已自动打开浏览器，如未弹出请手动复制下方链接。")
+        except Exception:
+            pass
+
         print()
-        print(f"   {url}")
+        print("┌" + "─" * 58 + "┐")
+        print("│ 📱 请用微信扫描二维码（在浏览器中打开该链接）：".ljust(56) + "│")
+        print("│".ljust(56) + "│")
+        print(f"│   {url}".ljust(56) + "│")
+        print("│".ljust(56) + "│")
+        print("│ （手机上确认登录后，此处自动完成）".ljust(50) + "│")
+        print("└" + "─" * 58 + "┘")
         print()
-        print("（如果链接太长，复制完整 URL 到浏览器打开即可）")
-        print()
+        qr_url_shown = True
 
     try:
         creds = await login_with_qr(on_qr_url=on_qr, timeout=480)
@@ -41,7 +56,7 @@ async def main() -> None:
         print(f"\n❌ 登录失败: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\n\n⚠️  用户取消登录")
+        print("\n\n⚠️  用户取消")
         sys.exit(0)
 
     # 保存凭证
@@ -53,16 +68,16 @@ async def main() -> None:
     )
 
     print()
-    print("=" * 60)
-    print("  ✅ 登录成功！")
-    print(f"  凭证已保存至: {path}")
-    print(f"  Account ID: {creds['account_id']}")
-    print(f"  User ID:    {creds['user_id']}")
-    print("=" * 60)
+    print("╔" + "═" * 58 + "╗")
+    print("║" + "  ✅ 登录成功！".center(52) + "║")
+    print("╠" + "═" * 58 + "╣")
+    print(f"║  凭证: {path}".ljust(56) + "║")
+    print(f"║  Account: {creds['account_id']}".ljust(56) + "║")
+    print("╚" + "═" * 58 + "╝")
     print()
-    print("现在可以使用了:")
-    print('  python push.py "你好，这是测试消息"')
-    print('  python push.py --file report.md')
+    print("  试试看:")
+    print('    python push.py "你好，测试消息 🎉"')
+    print()
 
 
 if __name__ == "__main__":

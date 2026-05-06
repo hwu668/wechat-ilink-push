@@ -1,4 +1,4 @@
-"""扫码登录流程 —— 通过终端打印二维码 URL，用户用微信扫码确认。
+"""扫码登录流程 —— 获取二维码 URL，轮询确认状态。
 
 用法:
     result = asyncio.run(login_with_qr())
@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from typing import Callable, Optional
 
 import httpx
@@ -16,10 +17,10 @@ import httpx
 
 _AUTH_BASE = "https://ilinkai.weixin.qq.com"
 _BOT_TYPE = "3"
-_QR_TIMEOUT = 10.0        # 获取二维码超时
-_POLL_TIMEOUT = 35.0       # 轮询超时
-_MAX_REFRESH = 3           # 二维码过期最多刷新次数
-_LOGIN_TIMEOUT = 480       # 总超时（秒）
+_QR_TIMEOUT = 10.0
+_POLL_TIMEOUT = 35.0
+_MAX_REFRESH = 3
+_LOGIN_TIMEOUT = 480
 
 
 # ─── QR 状态 ─────────────────────────────────────────────
@@ -41,40 +42,33 @@ async def login_with_qr(
     """执行扫码登录，返回凭证字典。
 
     Returns:
-        {
-            "token": str,          # bot_token
-            "account_id": str,     # ilink_bot_id
-            "base_url": str,       # API base URL
-            "user_id": str,        # ilink_user_id
-        }
-
-    Raises:
-        RuntimeError: 登录超时或失败
+        {"token": str, "account_id": str, "base_url": str, "user_id": str}
     """
     async with httpx.AsyncClient() as http:
-        # 1. 获取二维码
         qrcode_key, qrcode_url = await _fetch_qrcode(http)
 
         if on_qr_url:
             on_qr_url(qrcode_url)
 
-        # 2. 轮询状态
         poll_base = _AUTH_BASE
         refresh_count = 0
-        deadline = asyncio.get_event_loop().time() + timeout
+        start_time = asyncio.get_running_loop().time()
         scanned = False
 
-        while asyncio.get_event_loop().time() < deadline:
+        while (asyncio.get_running_loop().time() - start_time) < timeout:
             try:
                 data = await _poll_status(http, poll_base, qrcode_key)
             except (httpx.ReadTimeout, httpx.ConnectTimeout):
+                sys.stdout.write(".")
+                sys.stdout.flush()
                 await asyncio.sleep(1)
                 continue
 
             status = data.get("status", QRStatus.WAIT)
 
             if status == QRStatus.WAIT:
-                pass
+                sys.stdout.write(".")
+                sys.stdout.flush()
 
             elif status == QRStatus.SCANNED:
                 if not scanned:
@@ -101,7 +95,7 @@ async def login_with_qr(
                 refresh_count += 1
                 if refresh_count >= _MAX_REFRESH:
                     raise RuntimeError("二维码过期次数过多，请重试")
-                print(f"⚠️  二维码已过期，正在刷新 ({refresh_count}/{_MAX_REFRESH})...")
+                print(f"\n⚠️  二维码已过期，正在刷新 ({refresh_count}/{_MAX_REFRESH})...")
                 qrcode_key, qrcode_url = await _fetch_qrcode(http)
                 scanned = False
                 if on_qr_url:
@@ -111,9 +105,8 @@ async def login_with_qr(
                 redirect_host = data.get("redirect_host", "")
                 if redirect_host:
                     poll_base = f"https://{redirect_host}"
-                    print(f"🔄 重定向至: {poll_base}")
 
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(2.0)
 
         raise RuntimeError(f"登录超时（{timeout}秒），请重试")
 
