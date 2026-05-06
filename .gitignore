@@ -19,9 +19,7 @@ venv/
 .venv/
 
 # Test / debug scripts (may contain local credentials)
-_test_sdk.py
-_poll_test.py
-_poll_context.py
+_*.py
 
 # Temporary
 .tmp_*

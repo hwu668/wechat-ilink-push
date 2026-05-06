@@ -71,6 +71,8 @@ class ILinkClient:
             "Content-Type": "application/json",
             "AuthorizationType": "ilink_bot_token",
             "X-WECHAT-UIN": _random_uin(),
+            "iLink-App-Id": "wx_bot_python",
+            "iLink-App-ClientVersion": "258",  # 0x00_01_02 = 0x0102 = 258
         }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
@@ -89,9 +91,14 @@ class ILinkClient:
         Args:
             text: 消息内容（纯文本）
             to_user_id: 目标用户 ID（必填）
-            context_token: 会话上下文令牌（首次可省略）
+            context_token: 会话上下文令牌（留空则自动从磁盘加载）
         """
-        # 构建 msg，注意 exclude_none 原则：空字符串发，None 不发
+        # 未显式传入时自动加载持久化的 context_token
+        if not context_token:
+            from .storage import load_context_token
+            context_token = load_context_token()
+
+        # 构建 msg（from_user_id 留空由服务端填充，None 字段序列化时自动排除）
         msg: dict = {
             "from_user_id": "",
             "to_user_id": to_user_id,
@@ -105,7 +112,10 @@ class ILinkClient:
         if context_token:
             msg["context_token"] = context_token
 
-        body = {"msg": msg}
+        body = {
+            "msg": msg,
+            "base_info": {"channel_version": "2.0.0"},
+        }
 
         http = await self._ensure_http()
         resp = await http.post(
@@ -123,7 +133,10 @@ class ILinkClient:
             buf: 增量同步游标
             timeout_ms: 服务端长轮询超时（毫秒）
         """
-        body = {"get_updates_buf": buf}
+        body = {
+            "get_updates_buf": buf,
+            "base_info": {"channel_version": "2.0.0"},
+        }
         http = await self._ensure_http()
         client_timeout = (timeout_ms / 1000.0) + 5.0
         try:

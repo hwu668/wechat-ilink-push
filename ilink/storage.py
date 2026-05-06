@@ -79,3 +79,47 @@ def clear_credentials() -> None:
 def has_credentials() -> bool:
     """检查是否已有持久化凭证。"""
     return bool(load_credentials().get("token"))
+
+
+def load_context_token() -> str:
+    """读取持久化的 context_token（从 _poll_context.py 保存的）。
+
+    Returns:
+        context_token 字符串，若文件不存在或为空则返回 ""。
+    """
+    path = os.path.join(STATE_DIR, "context_token.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        return str(raw.get("context_token", "") or "")
+    except (FileNotFoundError, json.JSONDecodeError):
+        return ""
+
+
+def save_context_token(ctx: str, from_user: str = "") -> str:
+    """保存 context_token 到磁盘。
+
+    Args:
+        ctx: context_token 字符串
+        from_user: 来源用户 ID
+
+    Returns:
+        保存的文件路径
+    """
+    _ensure_dir(STATE_DIR)
+    data = {"context_token": ctx, "from_user": from_user}
+    path = os.path.join(STATE_DIR, "context_token.json")
+    fd, tmp = tempfile.mkstemp(dir=STATE_DIR, prefix=".tmp_", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        if os.name != "nt":
+            os.chmod(tmp, _PRIVATE_FILE_MODE)
+        os.replace(tmp, path)
+        if os.name != "nt":
+            os.chmod(path, _PRIVATE_FILE_MODE)
+    except Exception:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+    return path

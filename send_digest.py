@@ -128,19 +128,10 @@ async def main() -> None:
         if summary:
             header = f"📊 每日金融资讯 — {today}\n\n{summary}"
         else:
-            header = f"📊 每日金融资讯 — {today}\n详细报告见附件。"
+            header = f"📊 每日金融资讯 — {today}"
 
         print(f"📤 推送文本摘要 ({len(header)} 字符)...")
         await client.send_message(text=header, to_user_id=user_id)
-
-        # 2. 发送完整报告文件
-        file_size = md_path.stat().st_size
-        print(f"📤 推送完整报告 ({file_size} bytes)...")
-        await client.send_file(
-            file_path=str(md_path),
-            caption="📄 完整报告",
-            to_user_id=user_id,
-        )
 
         print("✅ 推送完成！请查看微信。")
 

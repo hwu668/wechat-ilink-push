@@ -27,6 +27,8 @@ from .storage import (
     load_credentials,
     clear_credentials,
     has_credentials,
+    load_context_token,
+    save_context_token,
 )
 
 __all__ = [
@@ -36,6 +38,8 @@ __all__ = [
     "load_credentials",
     "clear_credentials",
     "has_credentials",
+    "load_context_token",
+    "save_context_token",
     "get_client",
 ]
 
