@@ -57,9 +57,9 @@ async def main() -> None:
         print("\n❌ 请提供消息文本或文件路径")
         sys.exit(1)
 
-    # 获取客户端
+    # 获取客户端和 user_id
     try:
-        client = get_client()
+        client, user_id = get_client()
     except RuntimeError as e:
         print(f"❌ {e}")
         sys.exit(1)
@@ -77,14 +77,15 @@ async def main() -> None:
             await client.send_file(
                 file_path=str(file_path),
                 caption=caption,
+                to_user_id=user_id,
             )
             print(f"✅ 文件已发送: {file_path.name}")
 
         else:
             # 发送纯文本
             print(f"📤 正在发送消息 ({len(text)} 字符)...")
-            resp = await client.send_message(text=text)
-            ret = resp.get("ret", -1)
+            resp = await client.send_message(text=text, to_user_id=user_id)
+            ret = resp.get("ret")
             if ret and ret != 0:
                 print(f"⚠️  服务器返回错误: {resp}")
             else:

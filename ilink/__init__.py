@@ -42,13 +42,18 @@ __all__ = [
 __version__ = "1.0.0"
 
 
-def get_client() -> ILinkClient:
-    """快速获取已认证的客户端（从 ~/.ilink_push/credentials.json 读取）。"""
+def get_client() -> tuple[ILinkClient, str]:
+    """快速获取已认证的客户端和 user_id。
+
+    Returns:
+        (client, user_id) — user_id 用于 to_user_id 参数
+    """
     creds = load_credentials()
     token = creds.get("token", "")
     base_url = creds.get("base_url", "https://ilinkai.weixin.qq.com")
+    user_id = creds.get("user_id", "")
     if not token:
         raise RuntimeError(
             "未找到登录凭证。请先运行: python login.py"
         )
-    return ILinkClient(token=token, base_url=base_url)
+    return ILinkClient(token=token, base_url=base_url), user_id
