@@ -1,5 +1,5 @@
 # wechat-ilink-push
-
+Co-Contributors: hwu668 · DeepSeek
 **零第三方依赖的微信 iLink Bot 推送工具。**
 
 基于微信官方 ClawBot 插件的 iLink HTTP 协议，直接调用 5 个开放接口。
