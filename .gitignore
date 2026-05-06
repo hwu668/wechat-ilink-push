@@ -1,0 +1,22 @@
+# 凭证文件
+credentials.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtualenv
+venv/
+.venv/
+
+# Temporary
+.tmp_*
