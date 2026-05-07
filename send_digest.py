@@ -23,6 +23,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(SCRIPT_DIR.parent / "advanced_investment_strategy"))
 
 from ilink import get_client
+from create_gist import create_gist
 
 
 def _build_summary(md_path: str) -> str:
@@ -121,14 +122,27 @@ async def main() -> None:
         sys.exit(1)
 
     try:
-        # 1. 发送精简摘要
-        summary = _build_summary(str(md_path))
+        # 1. 上传完整报告到 secret gist
         today = datetime.now().strftime("%Y-%m-%d")
+        gist_url = ""
+        try:
+            print("📤 上传完整报告到 secret gist...")
+            gist_url = create_gist(str(md_path), description=f"每日金融资讯 {today}")
+            print(f"   {gist_url}")
+        except Exception as e:
+            print(f"⚠️  gist 上传跳过: {e}")
+
+        # 2. 发送精简摘要
+        summary = _build_summary(str(md_path))
 
         if summary:
             header = f"📊 每日金融资讯 — {today}\n\n{summary}"
         else:
             header = f"📊 每日金融资讯 — {today}"
+
+        # 3. 附加 gist 链接
+        if gist_url:
+            header += f"\n\n📄 完整报告: {gist_url}"
 
         print(f"📤 推送文本摘要 ({len(header)} 字符)...")
         await client.send_message(text=header, to_user_id=user_id)
